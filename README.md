@@ -287,6 +287,9 @@ Contributions, bug reports, and feature requests are welcome. Please ensure any 
 
 - **v1.2**: Current version with improved progress display and header handling
 
+## Credits Time :)
+- **Original Creator**: PikPikcU - This is the original script https://github.com/pikpikcu/hostinject I have just modified and uploaded on my repo full credit goes to PikPikcU.
+
 ## License
 
 This tool is provided as-is for educational and authorized security testing purposes.
