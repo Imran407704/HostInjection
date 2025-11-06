@@ -14,7 +14,9 @@ This tool is intended for **authorized security testing only**. Only use this sc
   - Reflection in response body
   - Reflection in response headers
   - Location header poisoning
-- **Pretty Progress Mode**: Single-line updating progress display
+  - Cache headers tracking
+  - Interesting headers identification
+- **Pretty Progress Mode**: Single-line updating progress display (ON by default)
 - **Multi-threaded**: Concurrent scanning for improved performance
 - **Flexible Configuration**: Support for custom headers, proxies, SSL options, and more
 - **Output Options**: JSON-formatted results for easy parsing and analysis
@@ -41,7 +43,7 @@ This tool is intended for **authorized security testing only**. Only use this sc
 ### Basic Usage
 
 ```bash
-# Scan a single URL
+# Scan a single URL (pretty progress ON by default)
 python3 hostinject.py -u https://example.com -h header.txt -a attacker.com
 
 # Scan multiple URLs from a file
@@ -61,34 +63,40 @@ python3 hostinject.py -l targets.txt -h header.txt -a attacker.com
 
 **HTTP Options:**
 - `-m, --method {GET,POST,HEAD}`: HTTP method (default: GET)
-- `-b, --body DATA`: Request body for POST requests
+- `-b, --body DATA`: Request body for POST/PUT requests
 - `-H, --extra-headers FILE`: Extra static headers (JSON file or key:value lines)
 - `-U, --user-agent STRING`: Custom User-Agent string
 - `-r, --redirects`: Follow redirects
 - `-s, --ssl`: Enable SSL certificate verification
-- `--no-warn-ssl`: Suppress SSL warnings
+- `--no-warn-ssl`: Suppress SSL warnings when SSL verify is off
 
 **Performance:**
 - `-t, --threads NUM`: Number of concurrent threads (default: 8)
 - `-T, --timeout SECONDS`: Request timeout in seconds (default: 12.0)
 
 **Progress Display:**
-- `--pretty-progress`: Enable single-line updating progress display
-- `--allow-concurrent-progress`: Allow threading with pretty progress (may cause output jitter)
+- `--no-pretty`: Disable single-line pretty progress (use standard per-attempt lines)
+- `--allow-concurrent-progress`: Allow threading with pretty progress (output may jitter)
 
 **Network:**
-- `-p, --proxy URL`: Proxy URL (e.g., http://127.0.0.1:8080)
+- `-p, --proxy URL`: Proxy URL (e.g., http://127.0.0.1:8080 or socks5://...)
 
 **Output:**
-- `-o, --output FILE`: Save findings to JSON file
+- `-o, --output FILE`: Save findings to JSONL file
 - `-v, --verbose`: Enable verbose output
 
 ## Examples
 
-### Basic Scan with Pretty Progress
+### Basic Scan (Pretty Progress ON by Default)
 
 ```bash
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com --pretty-progress
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com
+```
+
+### Scan Without Pretty Progress
+
+```bash
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com --no-pretty
 ```
 
 ### Scan with Extra Static Headers
@@ -129,26 +137,50 @@ python3 hostinject.py -l targets.txt -h header.txt -a evil.com -t 16 -o results.
 python3 hostinject.py -u https://target.com -h header.txt -a evil.com -m POST -b '{"key":"value"}'
 ```
 
+### Full Example with All Options
+
+```bash
+python3 hostinject.py \
+  -u https://target.com \
+  -h header.txt \
+  -a evil.com \
+  -m GET \
+  -H extra-headers.json \
+  -U "Mozilla/5.0" \
+  -p http://127.0.0.1:8080 \
+  -r \
+  -t 10 \
+  -T 15 \
+  -o results.json \
+  -v
+```
+
 ## Header Wordlist Format
 
 Create a header wordlist file (`header.txt`) with subdomains or prefixes (one per line):
 
 ```
-X-Forwarded
-X-Forwarded-By
-X-Forwarded-For
-X-Forwarded-For-Original
-X-Forwarded-Host
-X-Forwarded-Port
-X-Forwarded-Proto
-X-Forwarded-Protocol
-X-Forwarded-Scheme
-X-Forwarded-Server
-X-Forwarded-Ssl
-X-Forwarded-Ssl 
-X-Forwarder-For
-X-Forward-For
-X-Forward-Proto
+admin
+api
+test
+staging
+dev
+portal
+secure
+internal
+beta
+```
+
+Comments (lines starting with `#`) are ignored:
+
+```
+# Common subdomains
+admin
+api
+
+# Testing environments
+test
+staging
 ```
 
 ## Detection Signals
@@ -158,6 +190,47 @@ The scanner looks for the following indicators:
 1. **Body Reflection**: Payload appears in response body
 2. **Header Reflection**: Payload appears in response headers
 3. **Location Poisoning**: Payload appears in `Location` header
+4. **Cache Headers**: Tracks cache-related headers (Cache-Control, Age, X-Cache, etc.)
+5. **Interesting Headers**: Identifies server and routing headers (Server, Via, X-Varnish, etc.)
+
+## Output Format
+
+Results are saved in JSON Lines format (one JSON object per line):
+
+```json
+{
+  "url": "https://target.com",
+  "header": "X-Forwarded-Host",
+  "payload": "evil.com",
+  "signals": {
+    "status": 200,
+    "reflected_in_body": true,
+    "reflected_in_headers": ["Location"],
+    "location_poison": false,
+    "cache_headers": {
+      "Cache-Control": "public, max-age=3600",
+      "X-Cache": "HIT"
+    },
+    "interesting_headers": {
+      "Server": "nginx/1.18.0",
+      "Via": "1.1 varnish"
+    },
+    "content_length": 1234
+  },
+  "ts": 1699296000
+}
+```
+
+## Headers Tested
+
+The scanner tests the following headers:
+- `Host`
+- `X-Host`
+- `X-Forwarded-Host`
+- `X-Original-Host`
+- `X-Forwarded-Server`
+- `X-Forwarded-For`
+- `Forwarded`
 
 ## Payload Generation
 
@@ -175,16 +248,50 @@ Payloads are automatically generated from your attacker domain and header wordli
 
 Each payload is then tested with all header types.
 
+## Understanding the Output
+
+### During Scanning (Pretty Progress Mode)
+
+```
+→ TRY [15/120] X-Forwarded-Host: admin.evil.com
+  ✅ HIT via X-Forwarded-Host: evil.com (status 200)
+→ TRY [16/120] X-Forwarded-Host: api.evil.com
+```
+
+### Without Pretty Progress (--no-pretty)
+
+```
+→ TRY Host: evil.com
+→ TRY X-Forwarded-Host: evil.com
+  ✅ HIT via X-Forwarded-Host: evil.com (status 200)
+```
+
+### Summary Output
+
+```
+Summary for https://target.com
+  ✓ Host: 2 hit(s)
+  - X-Host: 0 hits
+  ✓ X-Forwarded-Host: 5 hit(s)
+  - X-Original-Host: 0 hits
+  - X-Forwarded-Server: 0 hits
+  ✓ X-Forwarded-For: 1 hit(s)
+  - Forwarded: 0 hits
+
+[+] Total potential findings: 8
+```
+
 ## Tips for Effective Testing
 
 1. **Start Small**: Begin with a small header wordlist to understand the target's behavior
-2. **Use Pretty Progress**: Enable `--pretty-progress` for cleaner output during testing
+2. **Pretty Progress is Default**: The tool now has pretty progress ON by default for cleaner output
 3. **Save Results**: Always use `-o` to save findings for later analysis
 4. **Proxy Through Burp**: Use `-p` to route traffic through Burp Suite for detailed inspection
 5. **Test Different Methods**: Try GET, POST, and HEAD methods
 6. **Manual Validation**: Always manually verify findings before reporting
 7. **Custom Headers**: Use `-H` to add authentication or other required headers
 8. **Adjust Threads**: Lower thread count if you encounter rate limiting
+9. **Check Cache Headers**: Review cache_headers in output for cache poisoning opportunities
 
 ## Troubleshooting
 
@@ -208,11 +315,11 @@ python3 hostinject.py -u https://target.com -h header.txt -a evil.com -t 2
 
 **Progress Display Issues**:
 ```bash
-# Use pretty progress in sequential mode (no threading)
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com --pretty-progress
+# Disable pretty progress if experiencing issues
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com --no-pretty
 
 # Or allow concurrent with some jitter
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com --pretty-progress --allow-concurrent-progress
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com --allow-concurrent-progress
 ```
 
 ## Common Use Cases
@@ -236,10 +343,20 @@ Check if password reset emails contain links with your attacker domain.
 ### Web Cache Deception
 
 ```bash
-python3 hostinject.py -u https://target.com/profile -h header.txt -a evil.com --pretty-progress
+python3 hostinject.py -u https://target.com/profile -h header.txt -a evil.com
 ```
 
 Test if sensitive pages can be cached with a malicious host header.
+
+## Understanding Vulnerabilities
+
+### Host Header Injection
+
+Occurs when an application trusts the Host header value and uses it in:
+- URL generation (password reset links, etc.)
+- Access control decisions
+- Cache keys
+- Server-side request forgery (SSRF)
 
 ### Real-World Impact
 
@@ -262,22 +379,29 @@ Test if sensitive pages can be cached with a malicious host header.
 Create a `header.txt` file with common subdomains:
 
 ```
-X-Forwarded
-X-Forwarded-By
-X-Forwarded-For
-X-Forwarded-For-Original
-X-Forwarded-Host
-X-Forwarded-Port
-X-Forwarded-Proto
-X-Forwarded-Protocol
-X-Forwarded-Scheme
-X-Forwarded-Server
-X-Forwarded-Ssl
-X-Forwarded-Ssl 
-X-Forwarder-For
-X-Forward-For
-X-Forward-Proto
+admin
+api
+staging
+test
+dev
+portal
+secure
+internal
+beta
+qa
+uat
+demo
+localhost
 ```
+
+## What's New in This Version
+
+- **Pretty Progress by Default**: Clean single-line progress display is now enabled by default
+- **Improved Error Handling**: Better SSL and request exception handling
+- **Cache Headers Tracking**: Automatically tracks and reports cache-related headers
+- **Interesting Headers**: Identifies server and routing headers for better analysis
+- **Enhanced Detection**: More comprehensive reflection detection
+- **User-Agent Update**: Default User-Agent changed to "HostInjection/1.0"
 
 ## Contributing
 
@@ -285,10 +409,15 @@ Contributions, bug reports, and feature requests are welcome. Please ensure any 
 
 ## Version History
 
-- **v1.2**: Current version with improved progress display and header handling
+- **v1.0**: Original version by PikPikcU
+- **v1.2**: Modified version with pretty progress by default, improved detection, and enhanced features
 
-## Credits Time :)
-- **Original Creator**: PikPikcU - This is the original script https://github.com/pikpikcu/hostinject I have just modified and uploaded on my repo full credit goes to PikPikcU.
+## Credits
+
+- **Original Creator**: [PikPikcU](https://github.com/pikpikcu) - This is based on the original script at https://github.com/pikpikcu/hostinject
+- **Modifications**: Enhanced with pretty progress by default, improved detection capabilities, cache header tracking, and better error handling
+
+Full credit goes to PikPikcU for the original concept and implementation. This is a modified version with additional features.
 
 ## License
 
