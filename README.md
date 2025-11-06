@@ -153,27 +153,21 @@ python3 hostinject.py \
 Create a header wordlist file (`header.txt`) with subdomains or prefixes (one per line):
 
 ```
-admin
-api
-test
-staging
-dev
-portal
-secure
-internal
-beta
-```
-
-Comments (lines starting with `#`) are ignored:
-
-```
-# Common subdomains
-admin
-api
-
-# Testing environments
-test
-staging
+X-Forwarded
+X-Forwarded-By
+X-Forwarded-For
+X-Forwarded-For-Original
+X-Forwarded-Host
+X-Forwarded-Port
+X-Forwarded-Proto
+X-Forwarded-Protocol
+X-Forwarded-Scheme
+X-Forwarded-Server
+X-Forwarded-Ssl
+X-Forwarded-Ssl 
+X-Forwarder-For
+X-Forward-For
+X-Forward-Proto
 ```
 
 ## Detection Signals
@@ -183,26 +177,6 @@ The scanner looks for the following indicators:
 1. **Body Reflection**: Payload appears in response body
 2. **Header Reflection**: Payload appears in response headers
 3. **Location Poisoning**: Payload appears in `Location` header
-
-## Output Format
-
-Results are saved in JSON Lines format (one JSON object per line):
-
-```json
-{
-  "url": "https://target.com",
-  "header": "X-Forwarded-Host",
-  "payload": "evil.com",
-  "signals": {
-    "status": 200,
-    "reflected_in_body": true,
-    "reflected_in_headers": ["Location"],
-    "location_poison": false,
-    "content_length": 1234
-  },
-  "ts": 1699296000
-}
-```
 
 ## Headers Tested
 
@@ -328,16 +302,6 @@ python3 hostinject.py -u https://target.com/profile -h header.txt -a evil.com --
 
 Test if sensitive pages can be cached with a malicious host header.
 
-## Understanding Vulnerabilities
-
-### Host Header Injection
-
-Occurs when an application trusts the Host header value and uses it in:
-- URL generation (password reset links, etc.)
-- Access control decisions
-- Cache keys
-- Server-side request forgery (SSRF)
-
 ### Real-World Impact
 
 - **Password Reset Poisoning**: Attacker receives password reset tokens
@@ -359,18 +323,21 @@ Occurs when an application trusts the Host header value and uses it in:
 Create a `header.txt` file with common subdomains:
 
 ```
-admin
-api
-staging
-test
-dev
-portal
-secure
-internal
-beta
-qa
-uat
-demo
+X-Forwarded
+X-Forwarded-By
+X-Forwarded-For
+X-Forwarded-For-Original
+X-Forwarded-Host
+X-Forwarded-Port
+X-Forwarded-Proto
+X-Forwarded-Protocol
+X-Forwarded-Scheme
+X-Forwarded-Server
+X-Forwarded-Ssl
+X-Forwarded-Ssl 
+X-Forwarder-For
+X-Forward-For
+X-Forward-Proto
 ```
 
 ## Contributing
