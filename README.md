@@ -129,25 +129,6 @@ python3 hostinject.py -l targets.txt -h header.txt -a evil.com -t 16 -o results.
 python3 hostinject.py -u https://target.com -h header.txt -a evil.com -m POST -b '{"key":"value"}'
 ```
 
-### Full Example with All Options
-
-```bash
-python3 hostinject.py \
-  -u https://target.com \
-  -h header.txt \
-  -a evil.com \
-  -m GET \
-  -H extra-headers.json \
-  -U "Mozilla/5.0" \
-  -p http://127.0.0.1:8080 \
-  -r \
-  -t 10 \
-  -T 15 \
-  -o results.json \
-  --pretty-progress \
-  -v
-```
-
 ## Header Wordlist Format
 
 Create a header wordlist file (`header.txt`) with subdomains or prefixes (one per line):
@@ -178,17 +159,6 @@ The scanner looks for the following indicators:
 2. **Header Reflection**: Payload appears in response headers
 3. **Location Poisoning**: Payload appears in `Location` header
 
-## Headers Tested
-
-The scanner tests the following headers:
-- `Host`
-- `X-Host`
-- `X-Forwarded-Host`
-- `X-Original-Host`
-- `X-Forwarded-Server`
-- `X-Forwarded-For`
-- `Forwarded`
-
 ## Payload Generation
 
 Payloads are automatically generated from your attacker domain and header wordlist:
@@ -204,37 +174,6 @@ Payloads are automatically generated from your attacker domain and header wordli
 - Hyphenated variants: `admin-attacker.com`, `attacker.com-admin`
 
 Each payload is then tested with all header types.
-
-## Understanding the Output
-
-### During Scanning
-
-Without `--pretty-progress`:
-```
-→ TRY Host: evil.com
-→ TRY X-Forwarded-Host: evil.com
-  ✅ HIT via X-Forwarded-Host: evil.com (status 200)
-```
-
-With `--pretty-progress`:
-```
-→ TRY [15/120] X-Forwarded-Host: admin.evil.com
-```
-
-### Summary Output
-
-```
-Summary for https://target.com
-  ✓ Host: 2 hit(s)
-  - X-Host: 0 hits
-  ✓ X-Forwarded-Host: 5 hit(s)
-  - X-Original-Host: 0 hits
-  - X-Forwarded-Server: 0 hits
-  ✓ X-Forwarded-For: 1 hit(s)
-  - Forwarded: 0 hits
-
-[+] Total potential findings: 8
-```
 
 ## Tips for Effective Testing
 
