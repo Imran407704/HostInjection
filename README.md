@@ -44,10 +44,10 @@ This tool is intended for **authorized security testing only**. Only use this sc
 
 ```bash
 # Scan a single URL (pretty progress ON by default)
-python3 hostinject.py -u https://example.com -h header.txt -a attacker.com
+python3 hostinject.py -u https://example.com --headers header.txt -a attacker.com
 
 # Scan multiple URLs from a file
-python3 hostinject.py -l targets.txt -h header.txt -a attacker.com
+python3 hostinject.py -l targets.txt --headers header.txt -a attacker.com
 ```
 
 ### Command Line Options
@@ -56,7 +56,7 @@ python3 hostinject.py -l targets.txt -h header.txt -a attacker.com
 
 - `-u, --url URL`: Target URL to scan (single target)
 - `-l, --list FILE`: File containing list of target URLs (one per line)
-- `-h, --headers FILE`: Headers file for payload generation (e.g., header.txt)
+- `    --headers FILE`: Headers file for payload generation (e.g., header.txt)
 - `-a, --attacker DOMAIN`: Attacker-controlled domain for testing
 
 #### Optional Arguments
@@ -90,30 +90,30 @@ python3 hostinject.py -l targets.txt -h header.txt -a attacker.com
 ### Basic Scan (Pretty Progress ON by Default)
 
 ```bash
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com
 ```
 
 ### Scan Without Pretty Progress
 
 ```bash
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com --no-pretty
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com --no-pretty
 ```
 ### Scan Through Proxy
 
 ```bash
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com -p http://127.0.0.1:8080
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com -p http://127.0.0.1:8080
 ```
 
 ### Multi-threaded Scan with Output
 
 ```bash
-python3 hostinject.py -l targets.txt -h header.txt -a evil.com -t 16 -o results.json
+python3 hostinject.py -l targets.txt --headers header.txt -a evil.com -t 16 -o results.json
 ```
 
 ### POST Request with Body
 
 ```bash
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com -m POST -b '{"key":"value"}'
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com -m POST -b '{"key":"value"}'
 ```
 
 ## Detection Signals
@@ -198,28 +198,28 @@ Each payload is then tested with all header types.
 **SSL Certificate Errors**:
 ```bash
 # Disable SSL verification (use with caution)
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com --no-warn-ssl
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com --no-warn-ssl
 ```
 
 **Connection Timeouts**:
 ```bash
 # Increase timeout to 30 seconds
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com -T 30
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com -T 30
 ```
 
 **Rate Limiting**:
 ```bash
 # Reduce thread count to 2
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com -t 2
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com -t 2
 ```
 
 **Progress Display Issues**:
 ```bash
 # Disable pretty progress if experiencing issues
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com --no-pretty
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com --no-pretty
 
 # Or allow concurrent with some jitter
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com --allow-concurrent-progress
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com --allow-concurrent-progress
 ```
 
 ## Common Use Cases
@@ -227,7 +227,7 @@ python3 hostinject.py -u https://target.com -h header.txt -a evil.com --allow-co
 ### Testing for Cache Poisoning
 
 ```bash
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com -o cache-test.json
+python3 hostinject.py -u https://target.com --headers header.txt -a evil.com -o cache-test.json
 ```
 
 Look for responses with cache headers indicating the poisoned response was cached.
@@ -235,7 +235,7 @@ Look for responses with cache headers indicating the poisoned response was cache
 ### Password Reset Poisoning
 
 ```bash
-python3 hostinject.py -u https://target.com/reset-password -h header.txt -a evil.com -m POST -b 'email=test@example.com'
+python3 hostinject.py -u https://target.com/reset-password --headers header.txt -a evil.com -m POST -b 'email=test@example.com'
 ```
 
 Check if password reset emails contain links with your attacker domain.
@@ -243,7 +243,7 @@ Check if password reset emails contain links with your attacker domain.
 ### Web Cache Deception
 
 ```bash
-python3 hostinject.py -u https://target.com/profile -h header.txt -a evil.com
+python3 hostinject.py -u https://target.com/profile --headers header.txt -a evil.com
 ```
 
 Test if sensitive pages can be cached with a malicious host header.
