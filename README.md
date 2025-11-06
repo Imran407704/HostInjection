@@ -129,12 +129,21 @@ python3 hostinject.py -u https://target.com -h header.txt -a evil.com -m POST -b
 Create a header wordlist file (`header.txt`) with subdomains or prefixes (one per line):
 
 ```
-admin
-api
-test
-staging
-dev
-portal
+X-Forwarded
+X-Forwarded-By
+X-Forwarded-For
+X-Forwarded-For-Original
+X-Forwarded-Host
+X-Forwarded-Port
+X-Forwarded-Proto
+X-Forwarded-Protocol
+X-Forwarded-Scheme
+X-Forwarded-Server
+X-Forwarded-Ssl
+X-Forwarded-Ssl 
+X-Forwarder-For
+X-Forward-For
+X-Forward-Proto
 ```
 
 Comments (lines starting with `#`) are ignored.
