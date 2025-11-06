@@ -31,7 +31,7 @@ def build_parser():
     tgt = p.add_mutually_exclusive_group(required=True)
     tgt.add_argument("-u","--url", help="Single target URL (https://example.com)")
     tgt.add_argument("-l","--list", help="File with list of URLs (one per line)")
-    p.add_argument("-h","--headers", required=True, help="Headers file (like headers.txt) containing payload words")
+    p.add_argument("--headers", required=True, help="Headers file (like headers.txt) containing payload words")
     p.add_argument("-a","--attacker", required=True, help="Attacker/Host payload (e.g. evil.com)")
 
     p.add_argument("-m","--method", default="GET", choices=["GET","POST","HEAD"])
