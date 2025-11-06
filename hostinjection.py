@@ -29,8 +29,8 @@ def vul(msg: str):  print(f"{BOLD}{RED}[Vulnerability]{RESET} {msg}")
 def build_parser():
     p = argparse.ArgumentParser(description="Host header injection scanner (pretty progress ON by default).")
     tgt = p.add_mutually_exclusive_group(required=True)
-    tgt.add_argument("-u","--url", help="Single target URL (https://example.com)")
-    tgt.add_argument("-l","--list", help="File with list of URLs (one per line)")
+    tgt.add_argument("-u","--url", help="Single target URL (https://example.com or example.com)")
+    tgt.add_argument("-l","--list", help="File with list of URLs/domains (one per line)")
     p.add_argument("--headers", required=True, help="Headers file (like headers.txt) containing payload words")
     p.add_argument("-a","--attacker", required=True, help="Attacker/Host payload (e.g. evil.com)")
 
@@ -47,6 +47,9 @@ def build_parser():
     p.add_argument("-o","--output", help="Save findings to JSONL file")
     p.add_argument("-v","--verbose", action="store_true", help="Verbose logging")
 
+    # New flag: force http for entries without scheme
+    p.add_argument("--force-http", action="store_true", help="If scheme missing, add http:// instead of https://")
+
     # Pretty progress defaults ON. Provide flag to disable.
     p.add_argument("--no-pretty", action="store_true",
                    help="Disable single-line pretty progress (use standard per-attempt lines)")
@@ -60,8 +63,28 @@ def read_lines(path:str)->List[str]:
     with open(path,"r",encoding="utf-8",errors="ignore") as f:
         return [x.strip() for x in f if x.strip() and not x.strip().startswith("#")]
 
+def _ensure_scheme(u: str, force_http: bool = False) -> str:
+    """
+    If u already has a scheme (e.g. http:// or https://), return as-is.
+    Otherwise add https:// by default or http:// if force_http is True.
+    """
+    u = u.strip()
+    if not u:
+        return u
+    # regex to detect existing scheme like scheme:// (case-insensitive)
+    if re.match(r'^[a-zA-Z][a-zA-Z0-9+\-.]*://', u):
+        return u
+    return ("http://" if force_http else "https://") + u
+
 def load_targets(a)->List[str]:
-    return [a.url.strip()] if a.url else read_lines(a.list)
+    """
+    Return list of targets with scheme ensured:
+    - if a.url provided, use that (add scheme if missing)
+    - else read lines from file and add scheme for lines missing it
+    Behavior controlled by --force-http flag (defaults to https if not provided).
+    """
+    raw = [a.url.strip()] if a.url else read_lines(a.list)
+    return [_ensure_scheme(x, force_http=bool(getattr(a, "force_http", False))) for x in raw]
 
 def load_headers_file(path:str)->List[str]:
     headers_list = read_lines(path)
