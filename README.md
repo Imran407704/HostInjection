@@ -9,12 +9,11 @@ This tool is intended for **authorized security testing only**. Only use this sc
 ## Features
 
 - **Multiple Header Testing**: Tests various header types including `Host`, `X-Forwarded-Host`, `X-Forwarded-For`, and more
-- **Payload Generation**: Automatically generates variations of payloads based on attacker domain and wordlist
+- **Payload Generation**: Automatically generates variations of payloads based on attacker domain and headers list
 - **Detection Capabilities**: 
   - Reflection in response body
   - Reflection in response headers
   - Location header poisoning
-  - Cache header analysis
 - **Pretty Progress Mode**: Single-line updating progress display
 - **Multi-threaded**: Concurrent scanning for improved performance
 - **Flexible Configuration**: Support for custom headers, proxies, SSL options, and more
@@ -55,7 +54,7 @@ python3 hostinject.py -l targets.txt -h header.txt -a attacker.com
 
 - `-u, --url URL`: Target URL to scan (single target)
 - `-l, --list FILE`: File containing list of target URLs (one per line)
-- `-h, --headers FILE`: Header wordlist file for payload generation
+- `-h, --headers FILE`: Headers file for payload generation (e.g., header.txt)
 - `-a, --attacker DOMAIN`: Attacker-controlled domain for testing
 
 #### Optional Arguments
@@ -63,7 +62,7 @@ python3 hostinject.py -l targets.txt -h header.txt -a attacker.com
 **HTTP Options:**
 - `-m, --method {GET,POST,HEAD}`: HTTP method (default: GET)
 - `-b, --body DATA`: Request body for POST requests
-- `-H, --extra-headers FILE`: Extra HTTP headers (JSON file or key:value lines)
+- `-H, --extra-headers FILE`: Extra static headers (JSON file or key:value lines)
 - `-U, --user-agent STRING`: Custom User-Agent string
 - `-r, --redirects`: Follow redirects
 - `-s, --ssl`: Enable SSL certificate verification
@@ -92,18 +91,24 @@ python3 hostinject.py -l targets.txt -h header.txt -a attacker.com
 python3 hostinject.py -u https://target.com -h header.txt -a evil.com --pretty-progress
 ```
 
-### Scan with Custom Headers
+### Scan with Extra Static Headers
 
 ```bash
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com -H headers.json
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com -H extra-headers.json
 ```
 
-Example `headers.json`:
+Example `extra-headers.json`:
 ```json
 {
   "Authorization": "Bearer token123",
   "X-Custom-Header": "value"
 }
+```
+
+Or use key:value format in a text file:
+```
+Authorization: Bearer token123
+X-Custom-Header: value
 ```
 
 ### Scan Through Proxy
@@ -124,29 +129,52 @@ python3 hostinject.py -l targets.txt -h header.txt -a evil.com -t 16 -o results.
 python3 hostinject.py -u https://target.com -h header.txt -a evil.com -m POST -b '{"key":"value"}'
 ```
 
+### Full Example with All Options
+
+```bash
+python3 hostinject.py \
+  -u https://target.com \
+  -h header.txt \
+  -a evil.com \
+  -m GET \
+  -H extra-headers.json \
+  -U "Mozilla/5.0" \
+  -p http://127.0.0.1:8080 \
+  -r \
+  -t 10 \
+  -T 15 \
+  -o results.json \
+  --pretty-progress \
+  -v
+```
+
 ## Header Wordlist Format
 
 Create a header wordlist file (`header.txt`) with subdomains or prefixes (one per line):
 
 ```
-X-Forwarded
-X-Forwarded-By
-X-Forwarded-For
-X-Forwarded-For-Original
-X-Forwarded-Host
-X-Forwarded-Port
-X-Forwarded-Proto
-X-Forwarded-Protocol
-X-Forwarded-Scheme
-X-Forwarded-Server
-X-Forwarded-Ssl
-X-Forwarded-Ssl 
-X-Forwarder-For
-X-Forward-For
-X-Forward-Proto
+admin
+api
+test
+staging
+dev
+portal
+secure
+internal
+beta
 ```
 
-Comments (lines starting with `#`) are ignored.
+Comments (lines starting with `#`) are ignored:
+
+```
+# Common subdomains
+admin
+api
+
+# Testing environments
+test
+staging
+```
 
 ## Detection Signals
 
@@ -155,8 +183,6 @@ The scanner looks for the following indicators:
 1. **Body Reflection**: Payload appears in response body
 2. **Header Reflection**: Payload appears in response headers
 3. **Location Poisoning**: Payload appears in `Location` header
-4. **Cache Headers**: Presence of caching-related headers
-5. **Interesting Headers**: Server identification and routing headers
 
 ## Output Format
 
@@ -172,8 +198,6 @@ Results are saved in JSON Lines format (one JSON object per line):
     "reflected_in_body": true,
     "reflected_in_headers": ["Location"],
     "location_poison": false,
-    "cache_headers": {},
-    "interesting_headers": {},
     "content_length": 1234
   },
   "ts": 1699296000
@@ -195,11 +219,48 @@ The scanner tests the following headers:
 
 Payloads are automatically generated from your attacker domain and header wordlist:
 
+**Given attacker domain:** `attacker.com`  
+**Given header.txt entry:** `admin`
+
+**Generated payloads:**
 - Base domain: `attacker.com`
 - With ports: `attacker.com:80`, `attacker.com:443`
 - With trailing dot: `attacker.com.`
-- Subdomain variants: `word.attacker.com`
-- Hyphenated variants: `word-attacker.com`, `attacker.com-word`
+- Subdomain variants: `admin.attacker.com`
+- Hyphenated variants: `admin-attacker.com`, `attacker.com-admin`
+
+Each payload is then tested with all header types.
+
+## Understanding the Output
+
+### During Scanning
+
+Without `--pretty-progress`:
+```
+→ TRY Host: evil.com
+→ TRY X-Forwarded-Host: evil.com
+  ✅ HIT via X-Forwarded-Host: evil.com (status 200)
+```
+
+With `--pretty-progress`:
+```
+→ TRY [15/120] X-Forwarded-Host: admin.evil.com
+```
+
+### Summary Output
+
+```
+Summary for https://target.com
+  ✓ Host: 2 hit(s)
+  - X-Host: 0 hits
+  ✓ X-Forwarded-Host: 5 hit(s)
+  - X-Original-Host: 0 hits
+  - X-Forwarded-Server: 0 hits
+  ✓ X-Forwarded-For: 1 hit(s)
+  - Forwarded: 0 hits
+
+[+] Total potential findings: 8
+```
 
 ## Tips for Effective Testing
 
@@ -207,7 +268,10 @@ Payloads are automatically generated from your attacker domain and header wordli
 2. **Use Pretty Progress**: Enable `--pretty-progress` for cleaner output during testing
 3. **Save Results**: Always use `-o` to save findings for later analysis
 4. **Proxy Through Burp**: Use `-p` to route traffic through Burp Suite for detailed inspection
-5. **Manual Validation**: Always manually verify findings before reporting
+5. **Test Different Methods**: Try GET, POST, and HEAD methods
+6. **Manual Validation**: Always manually verify findings before reporting
+7. **Custom Headers**: Use `-H` to add authentication or other required headers
+8. **Adjust Threads**: Lower thread count if you encounter rate limiting
 
 ## Troubleshooting
 
@@ -219,15 +283,67 @@ python3 hostinject.py -u https://target.com -h header.txt -a evil.com --no-warn-
 
 **Connection Timeouts**:
 ```bash
-# Increase timeout
+# Increase timeout to 30 seconds
 python3 hostinject.py -u https://target.com -h header.txt -a evil.com -T 30
 ```
 
 **Rate Limiting**:
 ```bash
-# Reduce thread count
+# Reduce thread count to 2
 python3 hostinject.py -u https://target.com -h header.txt -a evil.com -t 2
 ```
+
+**Progress Display Issues**:
+```bash
+# Use pretty progress in sequential mode (no threading)
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com --pretty-progress
+
+# Or allow concurrent with some jitter
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com --pretty-progress --allow-concurrent-progress
+```
+
+## Common Use Cases
+
+### Testing for Cache Poisoning
+
+```bash
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com -o cache-test.json
+```
+
+Look for responses with cache headers indicating the poisoned response was cached.
+
+### Password Reset Poisoning
+
+```bash
+python3 hostinject.py -u https://target.com/reset-password -h header.txt -a evil.com -m POST -b 'email=test@example.com'
+```
+
+Check if password reset emails contain links with your attacker domain.
+
+### Web Cache Deception
+
+```bash
+python3 hostinject.py -u https://target.com/profile -h header.txt -a evil.com --pretty-progress
+```
+
+Test if sensitive pages can be cached with a malicious host header.
+
+## Understanding Vulnerabilities
+
+### Host Header Injection
+
+Occurs when an application trusts the Host header value and uses it in:
+- URL generation (password reset links, etc.)
+- Access control decisions
+- Cache keys
+- Server-side request forgery (SSRF)
+
+### Real-World Impact
+
+- **Password Reset Poisoning**: Attacker receives password reset tokens
+- **Web Cache Poisoning**: Serving malicious content to other users
+- **SSRF**: Accessing internal resources
+- **Business Logic Bypass**: Circumventing access controls
 
 ## Security Considerations
 
@@ -236,18 +352,38 @@ python3 hostinject.py -u https://target.com -h header.txt -a evil.com -t 2
 - Be mindful of rate limits and terms of service
 - Results should be manually validated before reporting as vulnerabilities
 - Consider the legal and ethical implications in your jurisdiction
+- Do not use on production systems without proper authorization
+
+## Sample Header Wordlist
+
+Create a `header.txt` file with common subdomains:
+
+```
+admin
+api
+staging
+test
+dev
+portal
+secure
+internal
+beta
+qa
+uat
+demo
+```
 
 ## Contributing
 
 Contributions, bug reports, and feature requests are welcome. Please ensure any modifications maintain the security-focused nature of the tool.
 
+## Version History
+
+- **v1.2**: Current version with improved progress display and header handling
+
 ## License
 
 This tool is provided as-is for educational and authorized security testing purposes.
-
-## Version
-
-Current version: 1.2
 
 ---
 
