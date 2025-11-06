@@ -98,27 +98,6 @@ python3 hostinject.py -u https://target.com -h header.txt -a evil.com
 ```bash
 python3 hostinject.py -u https://target.com -h header.txt -a evil.com --no-pretty
 ```
-
-### Scan with Extra Static Headers
-
-```bash
-python3 hostinject.py -u https://target.com -h header.txt -a evil.com -H extra-headers.json
-```
-
-Example `extra-headers.json`:
-```json
-{
-  "Authorization": "Bearer token123",
-  "X-Custom-Header": "value"
-}
-```
-
-Or use key:value format in a text file:
-```
-Authorization: Bearer token123
-X-Custom-Header: value
-```
-
 ### Scan Through Proxy
 
 ```bash
@@ -135,52 +114,6 @@ python3 hostinject.py -l targets.txt -h header.txt -a evil.com -t 16 -o results.
 
 ```bash
 python3 hostinject.py -u https://target.com -h header.txt -a evil.com -m POST -b '{"key":"value"}'
-```
-
-### Full Example with All Options
-
-```bash
-python3 hostinject.py \
-  -u https://target.com \
-  -h header.txt \
-  -a evil.com \
-  -m GET \
-  -H extra-headers.json \
-  -U "Mozilla/5.0" \
-  -p http://127.0.0.1:8080 \
-  -r \
-  -t 10 \
-  -T 15 \
-  -o results.json \
-  -v
-```
-
-## Header Wordlist Format
-
-Create a header wordlist file (`header.txt`) with subdomains or prefixes (one per line):
-
-```
-admin
-api
-test
-staging
-dev
-portal
-secure
-internal
-beta
-```
-
-Comments (lines starting with `#`) are ignored:
-
-```
-# Common subdomains
-admin
-api
-
-# Testing environments
-test
-staging
 ```
 
 ## Detection Signals
@@ -247,39 +180,6 @@ Payloads are automatically generated from your attacker domain and header wordli
 - Hyphenated variants: `admin-attacker.com`, `attacker.com-admin`
 
 Each payload is then tested with all header types.
-
-## Understanding the Output
-
-### During Scanning (Pretty Progress Mode)
-
-```
-→ TRY [15/120] X-Forwarded-Host: admin.evil.com
-  ✅ HIT via X-Forwarded-Host: evil.com (status 200)
-→ TRY [16/120] X-Forwarded-Host: api.evil.com
-```
-
-### Without Pretty Progress (--no-pretty)
-
-```
-→ TRY Host: evil.com
-→ TRY X-Forwarded-Host: evil.com
-  ✅ HIT via X-Forwarded-Host: evil.com (status 200)
-```
-
-### Summary Output
-
-```
-Summary for https://target.com
-  ✓ Host: 2 hit(s)
-  - X-Host: 0 hits
-  ✓ X-Forwarded-Host: 5 hit(s)
-  - X-Original-Host: 0 hits
-  - X-Forwarded-Server: 0 hits
-  ✓ X-Forwarded-For: 1 hit(s)
-  - Forwarded: 0 hits
-
-[+] Total potential findings: 8
-```
 
 ## Tips for Effective Testing
 
@@ -374,25 +274,7 @@ Occurs when an application trusts the Host header value and uses it in:
 - Consider the legal and ethical implications in your jurisdiction
 - Do not use on production systems without proper authorization
 
-## Sample Header Wordlist
 
-Create a `header.txt` file with common subdomains:
-
-```
-admin
-api
-staging
-test
-dev
-portal
-secure
-internal
-beta
-qa
-uat
-demo
-localhost
-```
 
 ## What's New in This Version
 
