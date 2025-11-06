@@ -43,10 +43,10 @@ This tool is intended for **authorized security testing only**. Only use this sc
 
 ```bash
 # Scan a single URL
-python3 hostinject.py -u https://example.com -w wordlist.txt -a attacker.com
+python3 hostinject.py -u https://example.com -h header.txt -a attacker.com
 
 # Scan multiple URLs from a file
-python3 hostinject.py -l targets.txt -w wordlist.txt -a attacker.com
+python3 hostinject.py -l targets.txt -h header.txt -a attacker.com
 ```
 
 ### Command Line Options
@@ -55,7 +55,7 @@ python3 hostinject.py -l targets.txt -w wordlist.txt -a attacker.com
 
 - `-u, --url URL`: Target URL to scan (single target)
 - `-l, --list FILE`: File containing list of target URLs (one per line)
-- `-w, --wordlist FILE`: Wordlist file for payload generation
+- `-h, --headers FILE`: Header wordlist file for payload generation
 - `-a, --attacker DOMAIN`: Attacker-controlled domain for testing
 
 #### Optional Arguments
@@ -63,7 +63,7 @@ python3 hostinject.py -l targets.txt -w wordlist.txt -a attacker.com
 **HTTP Options:**
 - `-m, --method {GET,POST,HEAD}`: HTTP method (default: GET)
 - `-b, --body DATA`: Request body for POST requests
-- `-H, --headers FILE`: Extra headers (JSON file or key:value lines)
+- `-H, --extra-headers FILE`: Extra HTTP headers (JSON file or key:value lines)
 - `-U, --user-agent STRING`: Custom User-Agent string
 - `-r, --redirects`: Follow redirects
 - `-s, --ssl`: Enable SSL certificate verification
@@ -89,13 +89,13 @@ python3 hostinject.py -l targets.txt -w wordlist.txt -a attacker.com
 ### Basic Scan with Pretty Progress
 
 ```bash
-python3 hostinject.py -u https://target.com -w wordlist.txt -a evil.com --pretty-progress
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com --pretty-progress
 ```
 
 ### Scan with Custom Headers
 
 ```bash
-python3 hostinject.py -u https://target.com -w wordlist.txt -a evil.com -H headers.json
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com -H headers.json
 ```
 
 Example `headers.json`:
@@ -109,24 +109,24 @@ Example `headers.json`:
 ### Scan Through Proxy
 
 ```bash
-python3 hostinject.py -u https://target.com -w wordlist.txt -a evil.com -p http://127.0.0.1:8080
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com -p http://127.0.0.1:8080
 ```
 
 ### Multi-threaded Scan with Output
 
 ```bash
-python3 hostinject.py -l targets.txt -w wordlist.txt -a evil.com -t 16 -o results.json
+python3 hostinject.py -l targets.txt -h header.txt -a evil.com -t 16 -o results.json
 ```
 
 ### POST Request with Body
 
 ```bash
-python3 hostinject.py -u https://target.com -w wordlist.txt -a evil.com -m POST -b '{"key":"value"}'
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com -m POST -b '{"key":"value"}'
 ```
 
-## Wordlist Format
+## Header Wordlist Format
 
-Create a wordlist file with subdomains or prefixes (one per line):
+Create a header wordlist file (`header.txt`) with subdomains or prefixes (one per line):
 
 ```
 admin
@@ -184,7 +184,7 @@ The scanner tests the following headers:
 
 ## Payload Generation
 
-Payloads are automatically generated from your attacker domain and wordlist:
+Payloads are automatically generated from your attacker domain and header wordlist:
 
 - Base domain: `attacker.com`
 - With ports: `attacker.com:80`, `attacker.com:443`
@@ -194,7 +194,7 @@ Payloads are automatically generated from your attacker domain and wordlist:
 
 ## Tips for Effective Testing
 
-1. **Start Small**: Begin with a small wordlist to understand the target's behavior
+1. **Start Small**: Begin with a small header wordlist to understand the target's behavior
 2. **Use Pretty Progress**: Enable `--pretty-progress` for cleaner output during testing
 3. **Save Results**: Always use `-o` to save findings for later analysis
 4. **Proxy Through Burp**: Use `-p` to route traffic through Burp Suite for detailed inspection
@@ -205,19 +205,19 @@ Payloads are automatically generated from your attacker domain and wordlist:
 **SSL Certificate Errors**:
 ```bash
 # Disable SSL verification (use with caution)
-python3 hostinject.py -u https://target.com -w wordlist.txt -a evil.com --no-warn-ssl
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com --no-warn-ssl
 ```
 
 **Connection Timeouts**:
 ```bash
 # Increase timeout
-python3 hostinject.py -u https://target.com -w wordlist.txt -a evil.com -T 30
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com -T 30
 ```
 
 **Rate Limiting**:
 ```bash
 # Reduce thread count
-python3 hostinject.py -u https://target.com -w wordlist.txt -a evil.com -t 2
+python3 hostinject.py -u https://target.com -h header.txt -a evil.com -t 2
 ```
 
 ## Security Considerations
