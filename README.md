@@ -69,6 +69,7 @@ python3 hostinject.py -l targets.txt --headers header.txt -a attacker.com
 - `-r, --redirects`: Follow redirects
 - `-s, --ssl`: Enable SSL certificate verification
 - `--no-warn-ssl`: Suppress SSL warnings when SSL verify is off
+- `--force-http`: For force http
 
 **Performance:**
 - `-t, --threads NUM`: Number of concurrent threads (default: 8)
